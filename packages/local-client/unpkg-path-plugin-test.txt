@@ -1,0 +1,51 @@
+documentation:  esbuild.github.io
+
+
+import * as esbuild from 'esbuild-wasm';
+
+//returns object
+export const unpkgPathPlugin = () => {
+  return {
+    //for bebugging purposes
+    name: 'unpkg-path-plugin',
+    
+    //called automatically by esbuild; build represents the bundling process:
+    //find a file, loading a file, parsing it, transpiling it, and joining files together
+    //build allows us to interfere with that process by attaching event listeners:
+    //onResolve and onLoad
+    setup(build: esbuild.PluginBuild) {
+      
+      //find out the action path where the file is
+      build.onResolve({ filter: /.*/ }, async (args: any) => {
+        console.log('onResole', args);
+        
+        //return file path
+        return { path: args.path, namespace: 'a' };
+      });
+      
+      //attempt to load up the file from file path; filter executed against file attempting to load
+      build.onLoad({ filter: /.*/ }, async (args: any) => {
+        console.log('onLoad', args);
+        
+        //if condition true, parse and load up contents desired!
+        if (args.path === 'index.js') {
+          return {
+            loader: 'jsx',
+            contents: `
+              import message from './message';
+              console.log(message);
+            `,
+          };
+        
+        //SUPER IMPORTANT PART!!!
+        //intercepts and prevents esbuild from attempting to go to the file system/access HD
+        } else {
+          return {
+            loader: 'jsx',
+            contents: 'export default "hi there!"',
+          };
+        }
+      });
+    },
+  };
+};
